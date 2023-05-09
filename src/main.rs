@@ -4,6 +4,8 @@ use clap::Parser;
 use flate2::read::GzDecoder;
 use tar::Archive;
 
+const CDN_URL: &str = "https://cm.topc.at";
+
 #[derive(Parser, Debug)]
 #[command(author, version, about, long_about = None)]
 struct Args {
@@ -60,9 +62,22 @@ async fn main() -> Result<(), ()> {
 
     remove_dir("chromapper");
 
-    unpack_download_file(download_file_name);
+    println!("Unpacking archive");
+    let result = unpack_download_file(download_file_name);
 
-    remove_file(download_file_name);
+    if !args.keep_download_file {
+        remove_file(download_file_name);
+    }
+
+    match result {
+        Ok(_) => {
+            println!("Done");
+        },
+        Err(_) => {
+            println!("Error unpacking archive");
+            return Err(());
+        }
+    }
 
     launch_cm();
 
@@ -70,8 +85,12 @@ async fn main() -> Result<(), ()> {
 }
 
 async fn fetch_version(channel: &str) -> Result<i32, Box<dyn Error>> {
-    let cdn_url = "https://cm.topc.at";
-    let url = format!("{cdn_url}/{channel}");
+    let url = format!("{CDN_URL}/{channel}");
+
+    let args = Args::parse();
+    if args.verbose {
+        println!("Getting version from {url}");
+    }
 
     let response = reqwest::get(url).await?;
     let body = response.error_for_status()?.text().await?;
@@ -86,8 +105,7 @@ async fn download_update_zip(
     file_name: &str,
     out_file_name: &str,
 ) -> Result<(), Box<dyn Error>> {
-    let cdn_url = "https://cm.topc.at";
-    let url = format!("{cdn_url}/{prefix}{version}/{file_name}");
+    let url = format!("{CDN_URL}/{prefix}{version}/{file_name}");
 
     let args = Args::parse();
     if args.verbose {
