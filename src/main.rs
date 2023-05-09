@@ -1,4 +1,4 @@
-use std::{error::Error, io::Write, fs::{File, remove_file, remove_dir}};
+use std::{error::Error, io::Write, fs::{File, remove_file, remove_dir}, process::Command};
 
 use clap::Parser;
 use flate2::read::GzDecoder;
@@ -64,6 +64,8 @@ async fn main() -> Result<(), ()> {
 
     remove_file(download_file_name);
 
+    launch_cm();
+
     Ok(())
 }
 
@@ -112,4 +114,8 @@ fn unpack_download_file(file_name: &str) -> Result<(), Box<dyn Error>> {
     archive.unpack("./")?;
 
     Ok(())
+}
+
+fn launch_cm() {
+    Command::new("./chromapper/ChroMapper").output();
 }
