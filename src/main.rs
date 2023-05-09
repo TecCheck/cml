@@ -39,8 +39,8 @@ async fn main() -> Result<(), ()> {
     let mut version: i32 = args.cm_version;
 
     // TODO: Dynamic
-    let prefix = "nix/";
-    let file_name = "Linux.tar.gz";
+    let prefix = "nix/"; // win/|nix/|osx/
+    let file_name = "Linux.tar.gz"; // Win64.zip|Linux.tar.gz|MacOS.tar.gz
 
     if version == -1 {
         match fetch_version(&channel).await {
@@ -49,6 +49,7 @@ async fn main() -> Result<(), ()> {
             }
             Err(e) => {
                 eprintln!("Error while fetching version: {e}");
+                return Err(());
             }
         }
     }
@@ -58,10 +59,11 @@ async fn main() -> Result<(), ()> {
     println!("Downloading archive file");
     match download_update_zip(prefix, version, file_name, download_file_name).await {
         Ok(_) => {
-            println!("Done")
+            println!("Done");
         }
         Err(e) => {
-            eprintln!("Error downloading archive file: {e}")
+            eprintln!("Error downloading archive file: {e}");
+            return Err(());
         }
     }
 
