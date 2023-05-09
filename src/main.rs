@@ -11,6 +11,14 @@ use tar::Archive;
 
 const CDN_URL: &str = "https://cm.topc.at";
 
+const PREFIX_WIN: &str = "win/";
+const PREFIX_NIX: &str = "nix/";
+const PREFIX_OSX: &str = "osx/";
+
+const FILENAME_WIN: &str = "Win64.zip";
+const FILENAME_NIX: &str = "Linux.tar.gz";
+const FILENAME_OSX: &str = "MacOS.tar.gz";
+
 #[derive(Parser, Debug)]
 #[command(author, version, about, long_about = None)]
 struct Args {
@@ -38,9 +46,10 @@ async fn main() -> Result<(), ()> {
     let channel = args.channel; // stable|dev
     let mut version: i32 = args.cm_version;
 
-    // TODO: Dynamic
-    let prefix = "nix/"; // win/|nix/|osx/
-    let file_name = "Linux.tar.gz"; // Win64.zip|Linux.tar.gz|MacOS.tar.gz
+    let (pfx, fln) = get_os_specifics();
+
+    let prefix = pfx.as_str();
+    let file_name = fln.as_str();
 
     if version == -1 {
         match fetch_version(&channel).await {
@@ -57,7 +66,7 @@ async fn main() -> Result<(), ()> {
     let download_file_name = "download.tar.gz";
 
     println!("Downloading archive file");
-    match download_update_zip(prefix, version, file_name, download_file_name).await {
+    match download_update_file(prefix, version, file_name, download_file_name).await {
         Ok(_) => {
             println!("Done");
         }
@@ -92,6 +101,16 @@ async fn main() -> Result<(), ()> {
     Ok(())
 }
 
+fn get_os_specifics() -> (String, String) {
+    if cfg!(windows) {
+        return (PREFIX_WIN.to_string(), FILENAME_WIN.to_string());
+    } else if cfg!(target_os = "macos") {
+        return (PREFIX_OSX.to_string(), FILENAME_OSX.to_string());
+    } else {
+        return (PREFIX_NIX.to_string(), FILENAME_NIX.to_string());
+    }
+}
+
 async fn fetch_version(channel: &str) -> Result<i32, Box<dyn Error>> {
     let url = format!("{CDN_URL}/{channel}");
 
@@ -107,7 +126,7 @@ async fn fetch_version(channel: &str) -> Result<i32, Box<dyn Error>> {
     Ok(version)
 }
 
-async fn download_update_zip(
+async fn download_update_file(
     prefix: &str,
     version: i32,
     file_name: &str,
