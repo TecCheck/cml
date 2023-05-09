@@ -1,4 +1,9 @@
-use std::{error::Error, io::Write, fs::{File, remove_file, remove_dir}, process::Command};
+use std::{
+    error::Error,
+    fs::{remove_dir, remove_file, File},
+    io::Write,
+    process::Command,
+};
 
 use clap::Parser;
 use flate2::read::GzDecoder;
@@ -50,13 +55,13 @@ async fn main() -> Result<(), ()> {
 
     let download_file_name = "download.tar.gz";
 
-    println!("Downloading zip file");
+    println!("Downloading archive file");
     match download_update_zip(prefix, version, file_name, download_file_name).await {
         Ok(_) => {
             println!("Done")
         }
         Err(e) => {
-            eprintln!("Error downloading zip file: {e}")
+            eprintln!("Error downloading archive file: {e}")
         }
     }
 
@@ -72,13 +77,14 @@ async fn main() -> Result<(), ()> {
     match result {
         Ok(_) => {
             println!("Done");
-        },
+        }
         Err(_) => {
             println!("Error unpacking archive");
             return Err(());
         }
     }
 
+    println!("Launching ChroMapper");
     launch_cm();
 
     Ok(())
@@ -134,6 +140,7 @@ fn unpack_download_file(file_name: &str) -> Result<(), Box<dyn Error>> {
     Ok(())
 }
 
-fn launch_cm() {
-    Command::new("./chromapper/ChroMapper").output();
+fn launch_cm() -> Result<(), Box<dyn Error>> {
+    Command::new("./chromapper/ChroMapper").output()?;
+    Ok(())
 }
