@@ -1,6 +1,8 @@
-use std::{error::Error, io::Write};
+use std::{error::Error, io::Write, fs::{File, remove_file, remove_dir}};
 
 use clap::Parser;
+use flate2::read::GzDecoder;
+use tar::Archive;
 
 #[derive(Parser, Debug)]
 #[command(author, version, about, long_about = None)]
@@ -13,6 +15,11 @@ struct Args {
     #[arg(long, default_value_t = -1)]
     cm_version: i32,
 
+    /// Keep the downloaded file after unpacking it
+    #[arg(long, default_value_t = false)]
+    keep_download_file: bool,
+
+    /// More log output
     #[arg(short, long, default_value_t = false)]
     verbose: bool,
 }
@@ -39,8 +46,10 @@ async fn main() -> Result<(), ()> {
         }
     }
 
+    let download_file_name = "download.tar.gz";
+
     println!("Downloading zip file");
-    match download_update_zip(prefix, version, file_name, "download.zip").await {
+    match download_update_zip(prefix, version, file_name, download_file_name).await {
         Ok(_) => {
             println!("Done")
         }
@@ -48,6 +57,12 @@ async fn main() -> Result<(), ()> {
             eprintln!("Error downloading zip file: {e}")
         }
     }
+
+    remove_dir("chromapper");
+
+    unpack_download_file(download_file_name);
+
+    remove_file(download_file_name);
 
     Ok(())
 }
@@ -77,7 +92,7 @@ async fn download_update_zip(
         println!("Downloading from {url}");
     }
 
-    return download_file(&url, out_file_name).await;
+    download_file(&url, out_file_name).await
 }
 
 async fn download_file(url: &str, out_file_name: &str) -> Result<(), Box<dyn Error>> {
@@ -86,6 +101,15 @@ async fn download_file(url: &str, out_file_name: &str) -> Result<(), Box<dyn Err
 
     let mut file = std::fs::File::create(out_file_name).expect("Could not create file");
     file.write_all(&body)?;
+
+    Ok(())
+}
+
+fn unpack_download_file(file_name: &str) -> Result<(), Box<dyn Error>> {
+    let in_file = File::open(file_name)?;
+    let gz_decoder = GzDecoder::new(in_file);
+    let mut archive = Archive::new(gz_decoder);
+    archive.unpack("./")?;
 
     Ok(())
 }
